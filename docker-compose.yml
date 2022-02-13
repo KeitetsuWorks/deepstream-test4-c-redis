@@ -1,0 +1,56 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redis:6.2.6-bullseye
+    hostname: redis
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - frontend
+    volumes:
+      - ./redis/data/:/data
+
+  redisinsight:
+    image: redislabs/redisinsight:1.11.1
+    hostname: redisinsight
+    container_name: redisinsight
+    depends_on:
+      - redis
+    ports:
+      - "8001:8001"
+    networks:
+      - frontend
+    volumes:
+      - redisinsight:/db
+
+  nvds:
+    image: nvcr.io/nvidia/deepstream:6.0-devel
+    hostname: nvds
+    container_name: nvds
+    depends_on:
+      - redis
+    networks:
+      - frontend
+    environment:
+      - TZ=Asia/Tokyo
+      - DISPLAY=${DISPLAY}
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${PWD}:/data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+    tty: true
+
+networks:
+  frontend:
+
+volumes:
+  redisinsight:
